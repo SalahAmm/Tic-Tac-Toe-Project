@@ -1,80 +1,51 @@
-// select dom element
-
 const board = document.querySelector(".board");
-const Status = document.querySelector(".Status")
+const status = document.querySelector(".Status");
+const resetButton = document.querySelector(".Restart");
 
-
-
-
-
-
-
-//----------------------------------------------------------------
-
-
-
-
-
-
-// create Gameboard :
-
+// Create Gameboard
 const Gameboard = (function () {
   const board = ["", "", "", "", "", "", "", "", ""];
-
-  // input value
-
+  
   const getBoard = () => board;
-
   const inputSign = (index, player) => {
     if (board[index] === "") {
       board[index] = player;
+      return true;
     }
+    return false;
   };
-
-  return { getBoard, inputSign };
+  const resetBoard = () => {
+    board.fill("");
+  };
+  
+  return { getBoard, inputSign, resetBoard };
 })();
-// 
 
-
-
-
-
-
-// a control to play the game
-
+// Control to play the game
 const playerControl = (function () {
   function playerValue(name, value) {
-    return {
-      name,
-      value,
-    };
+    return { name, value };
   }
-
-  // create player
+  
+  // Create players
   const player1 = playerValue("Player One", "X");
   const player2 = playerValue("Player Two", "O");
-
-  //Switch player :
+  
+  // Switch player
   let currentPlayer = player1;
-
   const switchPlayer = () => {
     currentPlayer = currentPlayer === player1 ? player2 : player1;
   };
-
   const getCurrentPlayer = () => currentPlayer;
-
-  return { switchPlayer, getCurrentPlayer };
+  const resetToPlayer1 = () => {
+    currentPlayer = player1;
+  };
+  
+  return { switchPlayer, getCurrentPlayer, resetToPlayer1 };
 })();
 
-
-
-
-
-
-
-
 const winCondition = (function () {
-  // win condition :
+  // Win conditions
   const wins = [
     [0, 1, 2],
     [3, 4, 5],
@@ -86,7 +57,7 @@ const winCondition = (function () {
     [2, 5, 8],
   ];
 
-  const chechWinner = (board, currentPlayer) => {
+  const checkWinner = (board, currentPlayer) => {
     for (let condition of wins) {
       let [a, b, c] = condition;
       if (
@@ -94,112 +65,80 @@ const winCondition = (function () {
         board[b] === currentPlayer.value &&
         board[c] === currentPlayer.value
       ) {
-        return (winner = `${currentPlayer.name} is the winner`);
+        return `${currentPlayer.name} is the winner!`;
       }
     }
     if (!board.includes("")) {
-      return (tie = `its a tie!`);
+      return `It's a tie!`;
     }
-
     return null;
   };
-
-  return { chechWinner };
+  
+  return { checkWinner };
 })();
-
-
-
-
-
 
 const GameLoop = (function () {
-  // every time a player Click its swith the Player ;
+  let isGameOver = false;
 
-  const playerTurn = () => {
-    const checkWinner = winCondition.chechWinner(
-      Gameboard.getBoard(),
-      playerControl.getCurrentPlayer()
-    );
+  const playerTurn = (index) => {
+    if (isGameOver) return;
+    
+    if (Gameboard.inputSign(index, playerControl.getCurrentPlayer().value)) {
+      const winner = winCondition.checkWinner(
+        Gameboard.getBoard(),
+        playerControl.getCurrentPlayer()
+      );
 
-    if (checkWinner) {
-      return checkWinner;
+      if (winner) {
+        isGameOver = true;
+        status.textContent = winner;
+        return;
+      }
+
+      playerControl.switchPlayer();
+      status.textContent = `${playerControl.getCurrentPlayer().name}'s Turn`;
     }
-
-    playerControl.switchPlayer();
-
-    return playerControl.getCurrentPlayer().name ;
   };
 
-  // Stop the Game and Show the Winner or Tie
-
-  const endGame = () => {
-    const checkWinner = winCondition.chechWinner(
-      Gameboard.getBoard(),
-      playerControl.getCurrentPlayer()
-    );
-
-    if (checkWinner) {
-      return checkWinner;
-    }
-
-    return null;
+  const resetGame = () => {
+    isGameOver = false;
   };
 
-  // Update UI board for every Turn or End game;
+  return { playerTurn, resetGame };
+})();
 
-  const boardUpdate = () => {
-    const boardState = Gameboard.getBoard();
-    return boardState;
+const UI = (function () {
+  const showBoard = () => {
+    board.innerHTML = "";
+    Gameboard.getBoard().forEach((cell, index) => {
+      const cellDiv = document.createElement("button");
+      cellDiv.className = "Cell";
+      cellDiv.textContent = cell;
+      cellDiv.addEventListener("click", () => {
+        GameLoop.playerTurn(index);
+        showBoard(); // Update board after each move
+      });
+      board.appendChild(cellDiv);
+    });
   };
 
-  return { playerTurn, endGame, boardUpdate };
+  const showStatus = () => {
+    status.textContent = `${playerControl.getCurrentPlayer().name}'s Turn`;
+  };
+
+  return { showBoard, showStatus };
 })();
 
+// Restart game functionality
+const restartGame = () => {
+  Gameboard.resetBoard();
+  playerControl.resetToPlayer1();
+  GameLoop.resetGame();
+  UI.showBoard();
+  UI.showStatus();
+};
 
-
-
-
-const UI = (function (){
-    // Select the Board in html :
-    const ShowBoard = () => {
-      GameLoop.boardUpdate().forEach((Cell) => {
-         const cellDiv = document.createElement('div');
-         cellDiv.className = "Cell";
-         cellDiv.innerText = Cell;
-         board.appendChild(cellDiv);
-      })
-    };
-
-
-    const showStatus = () => {
-
-    };
-
-
-
-    return {ShowBoard}
-})();
-
-
-
-
-const GameRestart = (function () {
-    // select Status text Content 
-
-
-    // Restart the game . 
-
-    const restartButton = () => {
-      
-    }
-
-
-})();
-
-
-
-
-const clickHandiling = (function (){
-
-
-})();
+// Initialize the game
+UI.showBoard();
+UI.showStatus();
+resetButton.addEventListener("click", restartGame);
